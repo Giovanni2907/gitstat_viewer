@@ -3,7 +3,7 @@
 Dashboard de statistiques GitHub développé en Flutter (Clean Architecture + Riverpod).
 
 ## Prérequis
-- Flutter SDK (Version 3.22.x recommandée)
+- Flutter SDK (Version 3.47.2 recommandée)
 - VS Code avec l'extension Flutter & Dart
 
 ## Installation
