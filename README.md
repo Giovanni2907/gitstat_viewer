@@ -1,6 +1,23 @@
-# GitStat Viewer
+# Description
 
-Dashboard de statistiques GitHub développé en Flutter (Clean Architecture + Riverpod).
+🚀 Projet : GitStats Viewer
+
+ Un mini-projet projet de création d'un dashboard de profil GitHub qui sera une application Flutter Multi-platform (Desktop + Mobile).
+
+📅 *Début :* 2 septembre 2026
+🏁 *Fin prévue :* 16 septembre 2026
+
+👥 Membres de l’équipe :
+-David BONGOUADE
+-RAJAONARISON Notahinjanahary Marcelo Giovanni
+-Davy Moïse ISHIMWE 
+-Mujibu Akandji
+-DJOBO Olassan Donatien
+-ZOTOGLO Noé 
+-Justin Bashige
+
+👨‍💼 Chef d’équipe : RAJAONARISON Notahinjanahary Marcelo Giovanni
+🎓 Mentor : David BONGOUADE
 
 ## Prérequis
 - Flutter SDK (Version 3.47.2 recommandée)
@@ -30,3 +47,4 @@ Dashboard de statistiques GitHub développé en Flutter (Clean Architecture + Ri
 ```bash
    flutter run
    ```
+
