@@ -1,6 +1,21 @@
-// lib/core/network/auth_interceptor.dart
+// lib/core/network/dio_client.dart
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage_service.dart';
+
+/// Instance Dio unique de l'application (base : API GitHub).
+/// L'AuthInterceptor ajoute automatiquement le token à chaque requête.
+final dioProvider = Provider<Dio>((ref) {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: 'https://api.github.com',
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+    ),
+  );
+  dio.interceptors.add(AuthInterceptor(ref.watch(secureStorageProvider)));
+  return dio;
+});
 
 class AuthInterceptor extends Interceptor {
   final SecureStorageService _storageService;
