@@ -14,12 +14,14 @@ class CommitStats {
   final DateTime? newestCommitDate;
   final List<MapEntry<String, int>> topAuthors;
   final List<DailyCommits> dailyActivity;
+  final List<CommitModel> commits;
 
   CommitStats({
     required this.totalCommits,
     required this.newestCommitDate,
     required this.topAuthors,
     required this.dailyActivity,
+    required this.commits,
   });
 
   /// Nombre de jours affichés dans le graphique d'activité.
@@ -29,6 +31,9 @@ class CommitStats {
   static const int maxTopAuthors = 5;
 
   factory CommitStats.fromCommits(List<CommitModel> commits) {
+    // Tri du plus récent au plus ancien pour l'historique.
+    final sorted = [...commits]..sort((a, b) => b.date.compareTo(a.date));
+
     // --- 1. Top contributeurs ---
     final countByAuthor = <String, int>{};
     for (final commit in commits) {
@@ -61,10 +66,11 @@ class CommitStats {
     }
 
     return CommitStats(
-      totalCommits: commits.length,
+      totalCommits: sorted.length,
       newestCommitDate: newest,
       topAuthors: topAuthors,
       dailyActivity: dailyActivity,
+      commits: sorted,
     );
   }
 }
