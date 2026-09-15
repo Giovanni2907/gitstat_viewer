@@ -1,100 +1,97 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gitstat_viewer/core/storage/secure_storage_service.dart';
-import 'auth_state.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
+import '../../../../core/storage/secure_storage_service.dart';
+import 'auth_state.dart';
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRemoteDataSource _dataSource;
+  final AuthRemoteDataSource _remoteDataSource;
   final SecureStorageService _storageService;
   Timer? _pollingTimer;
+  bool _isPolling = false;
 
-  AuthNotifier(this._dataSource, this._storageService)
+  AuthNotifier(this._remoteDataSource, this._storageService)
       : super(const AuthInitial()) {
-    // Vérifier si un token est déjà sauvegardé au lancement
-    _checkExistingToken();
+    checkExistingToken();
   }
 
-  /// Vérifie si l'utilisateur est déjà connecté localement
-  Future<void> _checkExistingToken() async {
+  Future<void> checkExistingToken() async {
     final token = await _storageService.getAccessToken();
-  if (token != null && token.isNotEmpty) {
-    state = AuthAuthenticated(accessToken: token);
-  } else {
-    state = const AuthInitial();
-  }
-  await _storageService.saveAccessToken(token!);
-state = AuthAuthenticated(accessToken: token);
-  }
-
-  /// 1. Déclenche la demande de code Device Flow
-  Future<void> startDeviceFlow() async {
-    state = const AuthRequestingCode();
-
-    try {
-      final response = await _dataSource.requestDeviceCode();
-      state = AuthCodeReceived(deviceCode: response);
-
-      // Démarrer immédiatement la boucle d'attente (Polling)
-      _startPolling(
-        deviceCode: response.deviceCode,
-        intervalInSeconds: response.interval,
-        expiresInSeconds: response.expiresIn,
-      );
-    } catch (e) {
-      state = AuthError(
-        message: 'Impossible de se connecter à GitHub. Vérifiez votre connexion.',
-      );
+    if (token != null && token.isNotEmpty) {
+      state = AuthAuthenticated(accessToken: token);
+    } else {
+      state = const AuthInitial();
     }
   }
 
-  /// 2. Boucle temporisée (Polling) pour vérifier la validation du code
+  Future<void> startDeviceFlow() async {
+    state = const AuthRequestingCode();
+    try {
+      final deviceCodeResponse = await _remoteDataSource.requestDeviceCode();
+      state = AuthCodeReceived(deviceCode: deviceCodeResponse);
+
+      _startPolling(
+        deviceCode: deviceCodeResponse.deviceCode,
+        intervalInSeconds: deviceCodeResponse.interval,
+        expiresInSeconds: deviceCodeResponse.expiresIn,
+      );
+    } catch (e) {
+      state = AuthError(message: 'Échec de la demande de code : ${e.toString()}');
+    }
+  }
+
   void _startPolling({
-    required String deviceCode,
-    required int intervalInSeconds,
-    required int expiresInSeconds,
-  }) {
-    // Annuler un timer existant par sécurité
-    _pollingTimer?.cancel();
+  required String deviceCode,
+  required int intervalInSeconds,
+  required int expiresInSeconds,
+}) {
+  _pollingTimer?.cancel();
+  _isPolling = false;
+  final startTime = DateTime.now();
+  int currentInterval = intervalInSeconds < 5 ? 5 : intervalInSeconds;
 
-    final startTime = DateTime.now();
-    final interval = Duration(seconds: intervalInSeconds > 0 ? intervalInSeconds : 5);
+  void tick(Timer timer) async {
+    if (_isPolling) return;
 
-    _pollingTimer = Timer.periodic(interval, (timer) async {
-      // Vérifier si le code a expiré
-      final elapsed = DateTime.now().difference(startTime).inSeconds;
-      if (elapsed >= expiresInSeconds) {
+    final elapsed = DateTime.now().difference(startTime).inSeconds;
+    if (elapsed >= expiresInSeconds) {
+      timer.cancel();
+      state = const AuthError(message: 'Le code a expiré. Veuillez réessayer.');
+      return;
+    }
+
+    try {
+      _isPolling = true;
+      final result = await _remoteDataSource.pollForAccessToken(deviceCode);
+      _isPolling = false;
+
+      if (result.accessToken != null) {
         timer.cancel();
-        state = const AuthError(
-          message: 'Le code a expiré. Veuillez relancer la connexion.',
-        );
+        await _storageService.saveAccessToken(result.accessToken!);
+        state = AuthAuthenticated(accessToken: result.accessToken!);
         return;
       }
 
-      try {
-        final accessToken = await _dataSource.pollForAccessToken(
-          deviceCode: deviceCode,
-        );
-
-        // Si le token est enfin récupéré !
-        if (accessToken != null) {
-          timer.cancel();
-          
-          // Sauvegarder le token de façon sécurisée sur le téléphone / navigateur
-          await _storageService.saveAccessToken(accessToken);
-
-          state = AuthAuthenticated(accessToken: accessToken);
-        }
-      } catch (e) {
+      if (result.newInterval != null && result.newInterval! > currentInterval) {
+        // GitHub demande de ralentir : on recrée le timer avec le nouvel intervalle
+        currentInterval = result.newInterval!;
         timer.cancel();
-        state = AuthError(message: e.toString());
+        _pollingTimer = Timer.periodic(Duration(seconds: currentInterval), tick);
       }
-    });
+      // sinon (authorization_pending) : on ne fait rien, le timer continue tel quel
+    } catch (e) {
+      _isPolling = false;
+      timer.cancel();
+      state = AuthError(message: e.toString().replaceAll('Exception: ', ''));
+    }
   }
 
-  /// Réinitialiser l'état ou déconnecter
+  _pollingTimer = Timer.periodic(Duration(seconds: currentInterval), tick);
+}
+
   Future<void> logout() async {
     _pollingTimer?.cancel();
+    _isPolling = false;
     await _storageService.deleteAccessToken();
     state = const AuthInitial();
   }

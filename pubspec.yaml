@@ -59,6 +59,9 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_secure_storage: ^11.0.0
 
+  # --- Stats ---
+  fl_chart: ^0.69.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -86,6 +89,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

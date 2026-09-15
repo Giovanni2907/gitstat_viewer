@@ -1,5 +1,6 @@
+import 'package:gitstat_viewer/features/dashboard/presentation/screens/home_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gitstat_viewer/features/auth/screens/auth_screen.dart'; // Ajustez selon votre chemin d'import
+import 'package:gitstat_viewer/features/auth/presentation/screens/auth_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/auth',
@@ -9,6 +10,11 @@ final GoRouter appRouter = GoRouter(
       name: 'auth',
       builder: (context, state) => const AuthScreen(),
     ),
-    // Vous ajouterez vos autres routes ici plus tard (ex: '/home', '/repos')
+    GoRoute(
+      path: '/home',
+      name: 'home',
+      builder: ((context, state) => const HomeScreen())
+    ),
+
   ],
 );
