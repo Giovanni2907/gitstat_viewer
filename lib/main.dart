@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gitstat_viewer/core/router/app_router.dart';
 import 'package:gitstat_viewer/core/theme/providers/theme_provider.dart';
-import 'package:gitstat_viewer/features/forms/authentification_form.dart';
 import 'core/theme/app_theme.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+Future<void> main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Chargement des variables d'environnement depuis le fichier .env
+  await dotenv.load(fileName: '.env');
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -15,44 +21,13 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'GitStat Viewer',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: Scaffold(
-        appBar: AppBar(
-          title: Center(
-            child:Text('GitStats - Viewer',
-              style: TextStyle(
-                color: Colors.brown,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-                fontFamily: 'Times New Roman',
-              ),
-            ),  
-          ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.outline,
-        body: Center(
-          child: SizedBox(
-            height: 300,
-            width: 500,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  colors: [Colors.amber, Colors.white70],
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                  ),
-              ),
-              child: AuthentificationForm(),
-              ),
-            ),
-          ),
-      ),
+      routerConfig: appRouter,
     );
   }
 }

@@ -17,6 +17,7 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
+/// Intercepteur HTTP pour injecter le token GitHub et les en-têtes requis
 class AuthInterceptor extends Interceptor {
   final SecureStorageService _storageService;
 
@@ -27,16 +28,38 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Récupérer le token sauvegardé via le Device Flow
     final token = await _storageService.getAccessToken();
 
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }
 
-    // En-têtes standards requis par l'API GitHub
     options.headers['Accept'] = 'application/vnd.github.v3+json';
 
     super.onRequest(options, handler);
   }
 }
+
+/// Provider exposant l'instance Dio configurée (placé AU NIVEAU RACINE)
+final dioClientProvider = Provider<Dio>((ref) {
+  final storageService = ref.watch(secureStorageProvider);
+  
+  final dio = Dio(
+  BaseOptions(
+    baseUrl: 'https://github.com',
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+    headers: {'Accept': 'application/json'},
+  ),
+);
+
+dio.interceptors.add(LogInterceptor(
+  requestBody: true,
+  responseBody: true,
+  error: true,
+));
+
+dio.interceptors.add(AuthInterceptor(storageService));
+
+  return dio;
+});
