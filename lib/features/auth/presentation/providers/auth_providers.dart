@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gitstat_viewer/core/network/github_api_client.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
@@ -13,7 +14,8 @@ final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
 
 /// Provider principal d'état d'authentification
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final remoteDataSource = ref.watch(authRemoteDataSourceProvider);
+  final remoteDataSource = ref.watch(authRemoteDataSourceProvider); // garde ton provider existant
   final storageService = ref.watch(secureStorageProvider);
-  return AuthNotifier(remoteDataSource, storageService);
+  final apiDio = ref.watch(githubApiDioProvider); // nouveau
+  return AuthNotifier(remoteDataSource, storageService, apiDio);
 });

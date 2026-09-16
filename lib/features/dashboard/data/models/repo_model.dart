@@ -9,6 +9,7 @@ class RepoModel extends RepoEntity {
     super.language,
     required super.isPrivate,
     required super.htmlUrl,
+    super.pushedAt,
   });
 
   factory RepoModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +21,9 @@ class RepoModel extends RepoEntity {
       language: json['language'] as String?,
       isPrivate: json['private'] as bool? ?? false,
       htmlUrl: json['html_url'] as String,
+      pushedAt: json['pushed_at'] == null
+          ? null
+          : DateTime.tryParse(json['pushed_at'] as String),
     );
   }
 }

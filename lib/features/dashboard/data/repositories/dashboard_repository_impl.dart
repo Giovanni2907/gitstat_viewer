@@ -1,8 +1,11 @@
 ﻿import '../../domain/entities/dashboard_stats_entity.dart';
 import '../../domain/entities/github_user_entity.dart';
 import '../../domain/entities/language_stat_entity.dart';
+import '../../domain/entities/dashboard_commit_entity.dart';
+import '../../domain/entities/repo_entity.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 import '../datasources/dashboard_remote_data_source.dart';
+import '../models/dashboard_commit_model.dart';
 
 class DashboardRepositoryImpl implements DashboardRepository {
   final DashboardRemoteDataSource _remoteDataSource;
@@ -17,14 +20,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
   @override
   Future<DashboardStatsEntity> getDashboardStats(String username) async {
     final repos = await _remoteDataSource.getUserRepos();
-
-    // On ne calcule les commits/collaborateurs que sur les dépôts
-    // dont l'utilisateur est propriétaire, pour éviter le bruit des forks
-    // et le risque de rate-limit sur des dépôts tiers volumineux.
     final ownedRepos = repos.where((r) => r.ownerLogin == username).toList();
 
-    // Appels en parallèle, mais on protège chaque appel individuellement
-    // pour qu'un dépôt en erreur ne fasse pas échouer tout le dashboard.
     final commitCounts = await Future.wait(
       ownedRepos.map((repo) async {
         try {
@@ -58,10 +55,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
     for (final list in collaboratorLists) {
       uniqueCollaborators.addAll(list);
     }
-    uniqueCollaborators.remove(username); // on exclut l'utilisateur lui-même
+    uniqueCollaborators.remove(username);
 
-    // Répartition des langages : basée sur le langage principal déclaré
-    // par GitHub pour chaque dépôt (champ "language" de /user/repos).
     final languageCounts = <String, int>{};
     for (final repo in repos) {
       final lang = repo.language;
@@ -73,9 +68,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
         languageCounts.values.fold<int>(0, (sum, c) => sum + c);
 
     final languageStats = languageCounts.entries.map((entry) {
-      final percentage = totalWithLanguage == 0
-          ? 0.0
-          : (entry.value / totalWithLanguage) * 100;
+      final percentage =
+          totalWithLanguage == 0 ? 0.0 : (entry.value / totalWithLanguage) * 100;
       return LanguageStatEntity(
         language: entry.key,
         repoCount: entry.value,
@@ -89,6 +83,44 @@ class DashboardRepositoryImpl implements DashboardRepository {
       totalCommits: totalCommits,
       collaboratorsCount: uniqueCollaborators.length,
       languageStats: languageStats,
+      repos: repos,
     );
+  }
+
+  @override
+  Future<List<DashboardCommitEntity>> getRecentCommits(
+    List<RepoEntity> repos,
+    String username,
+  ) async {
+    // On limite aux dépôts possédés, triés par activité la plus récente,
+    // pour rester raisonnable en nombre d'appels API (rate limit GitHub).
+    final ownedRepos = repos.where((r) => r.ownerLogin == username).toList()
+      ..sort((a, b) {
+        final aDate = a.pushedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b.pushedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+    final candidateRepos = ownedRepos.take(6).toList();
+
+    final results = await Future.wait(
+      candidateRepos.map((repo) async {
+        try {
+          return await _remoteDataSource.getRepoCommits(
+            owner: repo.ownerLogin,
+            repo: repo.name,
+            author: username,
+            perPage: 5,
+          );
+        } catch (_) {
+          return <DashboardCommitModel>[];
+        }
+      }),
+    );
+
+    final allCommits = results.expand((list) => list).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    return allCommits.take(25).toList();
   }
 }

@@ -1,6 +1,7 @@
 ﻿import 'package:dio/dio.dart';
 import '../models/github_user_model.dart';
 import '../models/repo_model.dart';
+import '../models/dashboard_commit_model.dart';
 
 class DashboardRemoteDataSource {
   final Dio _dio;
@@ -36,16 +37,14 @@ class DashboardRemoteDataSource {
         data.map((json) => RepoModel.fromJson(json as Map<String, dynamic>)),
       );
 
-      if (data.length < perPage) break; // dernière page atteinte
+      if (data.length < perPage) break;
       page++;
     }
 
     return allRepos;
   }
 
-  /// Compte les commits d'un utilisateur sur un dépôt donné, sans tout
-  /// télécharger : on lit le numéro de la dernière page dans le header
-  /// "Link" (GitHub renvoie per_page éléments par page).
+  /// Compte les commits d'un utilisateur sur un dépôt donné via le header "Link".
   Future<int> getCommitCount({
     required String owner,
     required String repo,
@@ -54,16 +53,12 @@ class DashboardRemoteDataSource {
     try {
       final response = await _dio.get(
         '/repos/$owner/$repo/commits',
-        queryParameters: {
-          'author': author,
-          'per_page': 1,
-        },
+        queryParameters: {'author': author, 'per_page': 1},
       );
 
       final linkHeader = response.headers.value('link');
 
       if (linkHeader == null) {
-        // Pas de pagination : 0 ou 1 commit
         return (response.data as List).length;
       }
 
@@ -74,7 +69,6 @@ class DashboardRemoteDataSource {
 
       return (response.data as List).length;
     } on DioException catch (e) {
-      // Dépôt vide (409) ou inaccessible : on ignore proprement
       if (e.response?.statusCode == 409 || e.response?.statusCode == 404) {
         return 0;
       }
@@ -82,9 +76,36 @@ class DashboardRemoteDataSource {
     }
   }
 
-  /// GET /repos/{owner}/{repo}/collaborators — nécessite un accès push.
-  /// On ignore silencieusement les 403 (dépôts sur lesquels l'utilisateur
-  /// n'a pas les droits d'administration).
+  /// GET /repos/{owner}/{repo}/commits — derniers commits d'un auteur sur
+  /// un dépôt donné, utilisés pour le flux d'activité récente du Dashboard.
+  Future<List<DashboardCommitModel>> getRepoCommits({
+    required String owner,
+    required String repo,
+    required String author,
+    int perPage = 5,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/repos/$owner/$repo/commits',
+        queryParameters: {'author': author, 'per_page': perPage},
+      );
+
+      final List data = response.data as List;
+      return data
+          .map((json) => DashboardCommitModel.fromJson(
+                json as Map<String, dynamic>,
+                repoName: repo,
+              ))
+          .toList();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409 || e.response?.statusCode == 404) {
+        return [];
+      }
+      rethrow;
+    }
+  }
+
+  /// GET /repos/{owner}/{repo}/collaborators
   Future<List<String>> getCollaborators({
     required String owner,
     required String repo,
