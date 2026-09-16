@@ -14,6 +14,52 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
+  Widget _buildProfileActions(BuildContext context, WidgetRef ref) {
+  final settingsButton = ElevatedButton.icon(
+    icon: const Icon(Icons.settings_rounded),
+    label: const Text('Paramètres GitHub'),
+    onPressed: _openGithubSettings,
+  );
+
+  final logoutButton = OutlinedButton.icon(
+    icon: const Icon(Icons.logout_rounded),
+    label: const Text('Se déconnecter'),
+    onPressed: () => ref.read(authProvider.notifier).logout(),
+  );
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final isWide = constraints.maxWidth >= 480;
+
+      if (isWide) {
+        // Web/large écran : boutons côte à côte, largeur maîtrisée et centrée
+        // au lieu d'étirer toute la largeur disponible.
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Row(
+              children: [
+                Expanded(child: settingsButton),
+                const SizedBox(width: 12),
+                Expanded(child: logoutButton),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Mobile : empilés pleine largeur pour rester faciles à toucher.
+      return Column(
+        children: [
+          SizedBox(width: double.infinity, child: settingsButton),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: logoutButton),
+        ],
+      );
+    },
+  );
+}
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
@@ -59,17 +105,7 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 32),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.settings_rounded),
-              label: const Text('Paramètres GitHub'),
-              onPressed: _openGithubSettings,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.logout_rounded),
-              label: const Text('Se déconnecter'),
-              onPressed: () => ref.read(authProvider.notifier).logout(),
-            ),
+            _buildProfileActions(context, ref),
           ],
         ),
       ),

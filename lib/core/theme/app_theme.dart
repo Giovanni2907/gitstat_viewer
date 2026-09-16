@@ -55,6 +55,31 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
+      
+      // --- STYLISATION DE LA NAVIGATION BAR (DARK) ---
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: darkSurface,
+        indicatorColor: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.05),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: Colors.white);
+          }
+          return const IconThemeData(color: darkTextSecondary);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            );
+          }
+          return const TextStyle(
+            color: darkTextSecondary,
+            fontSize: 12,
+          );
+        }),
+      ),
     );
   }
 
@@ -93,6 +118,31 @@ class AppTheme {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
+      ),
+
+      // --- STYLISATION DE LA NAVIGATION BAR (LIGHT) ---
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: lightSurface,
+        indicatorColor: lightPrimary.withOpacity(0.12),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: lightPrimary);
+          }
+          return const IconThemeData(color: lightTextSecondary);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(
+              color: lightPrimary,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            );
+          }
+          return const TextStyle(
+            color: lightTextSecondary,
+            fontSize: 12,
+          );
+        }),
       ),
     );
   }

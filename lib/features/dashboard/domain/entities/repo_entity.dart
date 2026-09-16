@@ -6,6 +6,7 @@
   final String? language;
   final bool isPrivate;
   final String htmlUrl;
+  final DateTime? pushedAt;
 
   const RepoEntity({
     required this.id,
@@ -15,5 +16,6 @@
     this.language,
     required this.isPrivate,
     required this.htmlUrl,
+    this.pushedAt,
   });
 }

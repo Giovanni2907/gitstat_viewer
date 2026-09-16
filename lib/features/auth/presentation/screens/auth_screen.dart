@@ -120,7 +120,7 @@ class AuthScreen extends ConsumerWidget {
           const SizedBox(height: 12),
 
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
@@ -175,9 +175,9 @@ class AuthScreen extends ConsumerWidget {
                 height: 14,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
-                'En attente de validation sur le navigateur...',
+                'En attente de validation...',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
